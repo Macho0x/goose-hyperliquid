@@ -54,7 +54,7 @@ fn parse_hex(s: u8[:]) -> u8[>..] {
 }
 
 fn self_check() -> bool {
-    let body, ok = order::batch("50000", "0.1", "Gtc", 0, false);
+    let body, ok = order::batch("50000", "0.1", "Gtc", order::Priority.Absent);
     if !ok { return false; }
     let dig, dok = order::prehash(body, 1700000000000);
     if !dok { return false; }
@@ -70,7 +70,7 @@ fn self_check() -> bool {
     }
     if !saw_false { return false; }
 
-    let prio, pok = order::batch("50000.0", "0.10", "Ioc", 80000, true);
+    let prio, pok = order::batch("50000.0", "0.10", "Ioc", order::Priority.At { n: 80000 });
     if !pok { return false; }
     let pdig, pdok = order::prehash(prio, 1700000000000);
     if !pdok { return false; }
@@ -101,7 +101,7 @@ fn self_check() -> bool {
         if h[12 + i] != want[i] { return false; }
     }
 
-    let bad, bok = order::batch("nope", "1", "Gtc", 0, false);
+    let bad, bok = order::batch("nope", "1", "Gtc", order::Priority.Absent);
     if bok { return false; }
     return true;
 }

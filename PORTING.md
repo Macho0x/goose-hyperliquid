@@ -14,9 +14,19 @@ User-signed types use the `HyperliquidTransaction:` prefix and the Arbitrum chai
 
 `to_wei("72.305406316320073386", 18)` is `72305406316320073386`. `from_wei("98996405", 6)` is `98.996405`.
 
+## Covered surface
+
+User-signed EIP-712 actions are `usdSend`, `spotSend`, `withdraw`, `sendAsset`, `sendToEvmWithData`, `approveAgent`, `approveBuilderFee`, `usdClassTransfer`, `tokenDelegate`, `userDexAbstraction`, `userSetAbstraction`, `userPortfolioMargin`, `linkStakingUser`, `stakingLinkDisableTradingUser`, and `convertToMultiSigUser`.
+
+L1 MessagePack actions cover the hypersdk `Action` variants, including orders, cancels, TWAP, trailing stops, vault and sub-account operations, validator actions, and the HIP-1, HIP-3, and HIP-4 deploy families in `deploy.goose`. `tests/actions.hex` is `rmp_serde::to_vec_named` of those actions from hypersdk 0.3.0. A missing optional field is null when the Rust struct writes null, and omitted when the struct skips it.
+
+Info requests are the `InfoRequest` names. `info::typed` and `info::request` build a type, or a type plus a user. The rest have their own functions. Websocket subscriptions are the `Subscription` variants in `ws.goose`. `ws::connect` still returns false. Reply bodies stay JSON. `json::member` reads the fields a caller needs.
+
 ## What is different
 
 Calls are blocking. The nonce is an argument. There is no tokio, reqwest, yawc, or alloy provider.
+
+A closed set is an enum. A missing field is one absent-or-present value, and a wire bool such as buy, reduce-only, cross, or deposit is a two-variant enum. `user` takes `Chain` and hashes it as the text `Mainnet` or `Testnet`. The MessagePack and JSON bytes are unchanged.
 
 `ws::connect` returns false. `github.com/kaitk/goose-http@main` has no `wsclient` module, so this package does not copy one in. The subscription texts are ready for that client. They do not offer permessage-deflate. Reconnect is resending those texts.
 
@@ -26,4 +36,4 @@ Info and exchange tests use saved bodies. They do not post to the network.
 
 ## Check
 
-`goose tests/self_check.goose` from this directory printed `hyperliquid ok`. `goose tests/sign.goose` printed `sign ok`. `goose tests/user.goose` printed `user ok`. `goose tests/order.goose` printed `order ok`. `goose tests/http.goose` printed `http ok`. `goose tests/ws.goose` printed `ws ok`. `goose tests/evm.goose` printed `evm ok`.
+`goose tests/self_check.goose` from this directory printed `hyperliquid ok`. `goose tests/sign.goose` printed `sign ok`. `goose tests/user.goose` printed `user ok`. `goose tests/order.goose` printed `order ok`. `goose tests/http.goose` printed `http ok`. `goose tests/ws.goose` printed `ws ok`. `goose tests/evm.goose` printed `evm ok`. `goose tests/actions.goose` printed `actions ok`. `goose tests/coverage.goose` printed `coverage ok`.

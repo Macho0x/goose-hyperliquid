@@ -31,12 +31,12 @@ fn self_check() -> bool {
     var long: u8[>..] = [];
     long.append("0x");
     for i in 0..130 { long.push('a'); }
-    let body = exchange::body(action, 1700000000000, long, false, "", false, 0);
+    let body = exchange::body(action, 1700000000000, long, exchange::Text.Absent, exchange::When.Never);
     if !has(body, "\"action\":") { return false; }
     if !has(body, "\"nonce\":1700000000000") { return false; }
     if has(body, "vaultAddress") { return false; }
     if long.len != 132 { return false; }
-    let vaulted = exchange::body(action, 1, long, true, "0x2222222222222222222222222222222222222222", false, 0);
+    let vaulted = exchange::body(action, 1, long, exchange::Text.Present { text: "0x2222222222222222222222222222222222222222" }, exchange::When.Never);
     if !has(vaulted, "\"vaultAddress\":\"0x2222222222222222222222222222222222222222\"") { return false; }
 
     var meta: u8[>..] = [];
@@ -53,7 +53,7 @@ fn self_check() -> bool {
 
     let plain, pok = info::asset_ctx("q1ZyCnFWsqpWyk0syg6oULJSMlSqrQUA");
     if !pok || plain != "{\"BTC\":{\"markPx\":\"1\"}}" { return false; }
-    let req = info::request("meta", "");
+    let req = info::request(info::Query.Meta, "");
     if req != "{\"type\":\"meta\"}" { return false; }
     return true;
 }

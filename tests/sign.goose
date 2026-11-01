@@ -75,8 +75,34 @@ fn l1_body() -> u8[>..] {
 
 fn check_l1(mainnet: bool, has_vault: bool, has_expiry: bool, want: u8[:], why: u8[:]) {
     let body = l1_body();
-    var vault: u8[20] = [0x22; 20];
-    let dig, ok = sign::l1_prehash(body, 1700000000000, has_vault, vault, has_expiry, 1700000010000, mainnet);
+    var raw: u8[20] = [0x22; 20];
+    if mainnet {
+        run_l1(hyperliquid::Chain.Mainnet, body, raw, has_vault, has_expiry, want, why);
+        return;
+    }
+    run_l1(hyperliquid::Chain.Testnet, body, raw, has_vault, has_expiry, want, why);
+}
+
+fn run_l1(chain: hyperliquid::Chain, body: u8[:], raw: u8[:], has_vault: bool, has_expiry: bool, want: u8[:], why: u8[:]) {
+    if has_vault {
+        if has_expiry {
+            let dig, ok = sign::l1_prehash(body, 1700000000000, sign::Vault.Present { addr: raw }, sign::Expiry.At { time: 1700000010000 }, chain);
+            if !ok { fail(why); }
+            need(hex(dig), want, why);
+            return;
+        }
+        let dig, ok = sign::l1_prehash(body, 1700000000000, sign::Vault.Present { addr: raw }, sign::Expiry.Absent, chain);
+        if !ok { fail(why); }
+        need(hex(dig), want, why);
+        return;
+    }
+    if has_expiry {
+        let dig, ok = sign::l1_prehash(body, 1700000000000, sign::Vault.Absent, sign::Expiry.At { time: 1700000010000 }, chain);
+        if !ok { fail(why); }
+        need(hex(dig), want, why);
+        return;
+    }
+    let dig, ok = sign::l1_prehash(body, 1700000000000, sign::Vault.Absent, sign::Expiry.Absent, chain);
     if !ok { fail(why); }
     need(hex(dig), want, why);
 }

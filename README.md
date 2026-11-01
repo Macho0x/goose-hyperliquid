@@ -20,7 +20,7 @@ import hyperliquid from "../hyperliquid";
 import hyperliquid.order;
 
 fn main() {
-    let body, ok = order::batch("50000", "0.1", "Gtc", 0, false);
+    let body, ok = order::batch("50000", "0.1", "Gtc", order::Priority.Absent);
     if ok {
         let dig, dok = order::prehash(body, 1700000000000);
         print(dok);
@@ -37,7 +37,7 @@ fn main() {
 goose tests/self_check.goose
 ```
 
-A good run prints `hyperliquid ok`. The signing, user, order, http, websocket, and evm files can be run on their own.
+A good run prints `hyperliquid ok`. `tests/actions.goose` checks every action map against hypersdk 0.3.0. The signing, user, order, http, websocket, and evm files can be run on their own.
 
 ## Modules
 
@@ -45,8 +45,10 @@ A good run prints `hyperliquid ok`. The signing, user, order, http, websocket, a
 | --- | --- |
 | `wire` | Normalized decimals and `0x` addresses |
 | `sign` | L1 connection id and user-signed EIP-712 digest |
-| `user` | Transfers, agent approval, delegation |
-| `order` | Order, cancel, and modify MessagePack |
+| `user` | Transfers, agent approval, delegation, and the other user-signed actions |
+| `l1` | Leverage, margin, vault, borrow, dust, and sub-account MessagePack |
+| `order` | Order, cancel, modify, trigger, and client-order-id MessagePack |
+| `deploy` | HIP-1, HIP-3, and HIP-4 deploy MessagePack |
 | `exchange` | The JSON body for `/exchange` |
 | `info` | Info requests, a market name, and raw-deflate asset contexts |
 | `ws` | Subscription texts. No permessage-deflate |
@@ -54,7 +56,7 @@ A good run prints `hyperliquid ok`. The signing, user, order, http, websocket, a
 | `morpho` | `market(bytes32)` and `idToMarketParams(bytes32)` |
 | `uniswap` | `slot0`, `token0`, and a pool address from a saved log |
 
-`PORTING.md` lists the Rust paths and the differences.
+`PORTING.md` lists the Rust paths and the differences. `TODO.md` lists what is still open.
 
 ## License
 

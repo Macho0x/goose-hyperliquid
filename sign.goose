@@ -42,10 +42,29 @@ fn domain(name: u8[:], version: u8[:], chain_id: u64) -> u8[32] {
     return keccak256::hash(enc);
 }
 
-fn agent_digest(mainnet: bool, connection: u8[:]) -> u8[32], bool {
+
+enum Vault { Absent, Present { addr: const u8[:] } }
+enum Expiry { Absent, At { time: u64 } }
+
+fn vault_ok(v: Vault.Absent) -> bool { return true; }
+fn vault_ok(v: Vault.Present) -> bool { return v.addr.len == 20; }
+
+fn put_vault(buf: u8[>..]&, v: Vault.Absent) { buf.push(0); }
+fn put_vault(buf: u8[>..]&, v: Vault.Present) {
+    buf.push(1);
+    buf.append(v.addr);
+}
+
+fn put_expiry(buf: u8[>..]&, e: Expiry.Absent) { return; }
+fn put_expiry(buf: u8[>..]&, e: Expiry.At) {
+    buf.push(0);
+    put_u64(buf, e.time);
+}
+
+fn agent_digest(chain: hyperliquid::Chain, connection: u8[:]) -> u8[32], bool {
     if connection.len != 32 { return [0; 32], false; }
     var source: u8[>..] = [];
-    if mainnet { source.push('a'); } else { source.push('b'); }
+    if chain == hyperliquid::Chain.Mainnet { source.push('a'); } else { source.push('b'); }
     var enc: u8[>..] = [];
     enc.append(keccak256::hash(AGENT_TYPE));
     enc.append(keccak256::hash(source));
@@ -55,23 +74,15 @@ fn agent_digest(mainnet: bool, connection: u8[:]) -> u8[32], bool {
     return eip712::digest(dom, struct_hash);
 }
 
-fn l1_prehash(body: u8[:], nonce: u64, has_vault: bool, vault: u8[:], has_expiry: bool, expiry: u64, mainnet: bool) -> u8[32], bool {
-    if has_vault && vault.len != 20 { return [0; 32], false; }
+fn l1_prehash(body: u8[:], nonce: u64, vault: Vault, expiry: Expiry, chain: hyperliquid::Chain) -> u8[32], bool {
+    if !vault_ok(vault) { return [0; 32], false; }
     var buf: u8[>..] = [];
     buf.append(body);
     put_u64(buf, nonce);
-    if has_vault {
-        buf.push(1);
-        buf.append(vault);
-    } else {
-        buf.push(0);
-    }
-    if has_expiry {
-        buf.push(0);
-        put_u64(buf, expiry);
-    }
+    put_vault(buf, vault);
+    put_expiry(buf, expiry);
     let connection = keccak256::hash(buf);
-    return agent_digest(mainnet, connection);
+    return agent_digest(chain, connection);
 }
 
 fn user_prehash(type_str: u8[:], fields: u8[:], chain_id: u64) -> u8[32], bool {

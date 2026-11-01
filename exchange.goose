@@ -5,7 +5,24 @@ import json;
 
 namespace exchange;
 
-fn body(action: u8[:], nonce: i64, signature: u8[:], has_vault: bool, vault: u8[:], has_expiry: bool, expiry: i64) -> u8[>..] {
+enum Text { Absent, Present { text: const u8[:] } }
+enum When { Never, At { time: i64 } }
+
+fn put_vault(out: u8[>..]&, t: Text.Absent) { return; }
+fn put_vault(out: u8[>..]&, t: Text.Present) {
+    out.push(',');
+    json::format_key(out, "vaultAddress");
+    json::format_string(out, t.text);
+}
+
+fn put_expiry(out: u8[>..]&, w: When.Never) { return; }
+fn put_expiry(out: u8[>..]&, w: When.At) {
+    out.push(',');
+    json::format_key(out, "expiresAfter");
+    json::format_int(out, w.time);
+}
+
+fn body(action: u8[:], nonce: i64, signature: u8[:], vault: Text, expiry: When) -> u8[>..] {
     var out: u8[>..] = [];
     out.push('{');
     json::format_key(out, "action");
@@ -16,16 +33,8 @@ fn body(action: u8[:], nonce: i64, signature: u8[:], has_vault: bool, vault: u8[
     out.push(',');
     json::format_key(out, "signature");
     json::format_string(out, signature);
-    if has_vault {
-        out.push(',');
-        json::format_key(out, "vaultAddress");
-        json::format_string(out, vault);
-    }
-    if has_expiry {
-        out.push(',');
-        json::format_key(out, "expiresAfter");
-        json::format_int(out, expiry);
-    }
+    put_vault(out, vault);
+    put_expiry(out, expiry);
     out.push('}');
     return out;
 }
