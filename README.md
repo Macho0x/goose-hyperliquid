@@ -6,7 +6,7 @@
 
 <p align="center">
   HyperCore signing, info, and HyperEVM reads for <a href="https://github.com/aardappel/goose">Goose</a><br>
-  <strong>0.1</strong> · <a href="LICENSE">Apache-2.0</a>
+  <strong>0.1.1</strong> · <a href="LICENSE">Apache-2.0</a>
 </p>
 
 Signs the same HyperCore hashes as [hypersdk](https://github.com/infinitefield/hypersdk) 0.3.0 and the Hyperliquid Python SDK. An L1 order is a named MessagePack map, a nonce, and an Agent signature. A transfer is EIP-712 under `HyperliquidSignTransaction`. Prices go through goose-decimal, so `10.0` is hashed as `10`.
@@ -57,6 +57,17 @@ A good run prints `hyperliquid ok`. `tests/actions.goose` checks every action ma
 | `uniswap` | `slot0`, `token0`, and a pool address from a saved log |
 
 `PORTING.md` lists the Rust paths and the differences. `TODO.md` lists what is still open.
+
+## Benchmarks
+
+`bench.goose` times this package. The row names stay fixed, so a clang run before a change and a clang run after it compare.
+
+```sh
+goose build -o hyperliquid-bench bench.goose --cc clang
+./hyperliquid-bench
+```
+
+`goose bench.goose` runs in TinyCC. That is not a timing result. Numbers depend on the machine, so this page does not publish them.
 
 ## License
 
