@@ -1,10 +1,13 @@
-// Info requests and a few response reads. Fast asset contexts are
-// base64 wrapped around a raw DEFLATE stream.
+// Info requests, a few response reads, and POST /info.
+// Fast asset contexts are base64 wrapped around a raw DEFLATE stream.
 
 import base64;
 import deflate from "../deflate";
 import deflate.inflate;
 import json;
+import http from "github.com/kaitk/goose-http@main";
+import tls from "github.com/kaitk/goose-tls@v0.0.6";
+import http.client;
 
 namespace info;
 
@@ -596,4 +599,12 @@ fn asset_ctx(encoded: u8[:]) -> u8[>..], bool {
     var raw: u8[>..] = [];
     if !base64::decode(raw, encoded) { return [], false; }
     return inflate::decode(raw);
+}
+
+// Posts payload, the JSON from request and the other builders.
+// A program that calls post declares goose-http and goose-tls in its root file.
+fn post(session: http::Session&, chain: hyperliquid::Chain, payload: u8[:]) -> http::ClientResponse, http::Error {
+    return http::post(session, hyperliquid::info_url(chain)) { req =>
+        http::body(req, "application/json", payload);
+    };
 }

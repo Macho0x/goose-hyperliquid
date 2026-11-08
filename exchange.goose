@@ -1,7 +1,11 @@
-// The JSON body posted to /exchange. The test checks the bytes.
-// A socket is the caller's job.
+// The JSON body posted to /exchange, and the POST itself.
+// signature is the JSON object text, with r, s, and v.
+// A program that calls post declares goose-http and goose-tls in its root file.
 
 import json;
+import http from "github.com/kaitk/goose-http@main";
+import tls from "github.com/kaitk/goose-tls@v0.0.6";
+import http.client;
 
 namespace exchange;
 
@@ -32,9 +36,15 @@ fn body(action: u8[:], nonce: i64, signature: u8[:], vault: Text, expiry: When) 
     json::format_int(out, nonce);
     out.push(',');
     json::format_key(out, "signature");
-    json::format_string(out, signature);
+    out.append(signature);
     put_vault(out, vault);
     put_expiry(out, expiry);
     out.push('}');
     return out;
+}
+
+fn post(session: http::Session&, chain: hyperliquid::Chain, payload: u8[:]) -> http::ClientResponse, http::Error {
+    return http::post(session, hyperliquid::exchange_url(chain)) { req =>
+        http::body(req, "application/json", payload);
+    };
 }

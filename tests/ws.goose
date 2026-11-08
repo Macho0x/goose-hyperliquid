@@ -1,5 +1,9 @@
 import os;
 import json;
+import http from "github.com/kaitk/goose-http@main";
+import tls from "github.com/kaitk/goose-tls@v0.0.6";
+import hash from "github.com/kaitk/goose-hash@v0.0.4";
+import http.client;
 import hyperliquid from "..";
 import hyperliquid.ws;
 
@@ -37,9 +41,17 @@ fn self_check() -> bool {
     if !has(post, "\"method\":\"post\"") { return false; }
     let again = ws::trades("BTC");
     if again != trades { return false; }
-    if has(ws::opening(), "permessage-deflate") { return false; }
-    if ws::connect("") { return false; }
-    if ws::connect("wss://api.hyperliquid.xyz/ws") { return false; }
+    var session = http::session();
+    var missing, missing_err = ws::connect(session, "");
+    if missing_err.call != "url" { return false; }
+    var plain, plain_err = ws::connect(session, "https://api.hyperliquid.xyz/ws");
+    if plain_err.call != "url" { return false; }
+    if ws::send(missing, trades).call != "send" { return false; }
+    let msg, read_err = ws::read(missing);
+    if read_err.call != "recv" || msg.data.len != 0 { return false; }
+    if ws::close(missing).code != 0 { return false; }
+    if ws::close(plain).code != 0 { return false; }
+    http::free(session);
     return true;
 }
 

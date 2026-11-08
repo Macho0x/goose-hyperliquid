@@ -10,6 +10,21 @@ fn chain_name(chain: Chain) -> u8[:] {
     return "Testnet";
 }
 
+fn info_url(chain: Chain) -> u8[:] {
+    if chain == Chain.Mainnet { return "https://api.hyperliquid.xyz/info"; }
+    return "https://api.hyperliquid-testnet.xyz/info";
+}
+
+fn exchange_url(chain: Chain) -> u8[:] {
+    if chain == Chain.Mainnet { return "https://api.hyperliquid.xyz/exchange"; }
+    return "https://api.hyperliquid-testnet.xyz/exchange";
+}
+
+fn ws_url(chain: Chain) -> u8[:] {
+    if chain == Chain.Mainnet { return "wss://api.hyperliquid.xyz/ws"; }
+    return "wss://api.hyperliquid-testnet.xyz/ws";
+}
+
 fn ::main() {
     print("goose tests/sign.goose");
 }

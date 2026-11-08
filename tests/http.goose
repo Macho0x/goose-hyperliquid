@@ -4,6 +4,8 @@ import base64;
 import decimal from "../../decimal";
 import deflate from "../../deflate";
 import deflate.inflate;
+import http from "github.com/kaitk/goose-http@main";
+import tls from "github.com/kaitk/goose-tls@v0.0.6";
 import hyperliquid from "..";
 import hyperliquid.exchange;
 import hyperliquid.info;
@@ -28,15 +30,17 @@ fn has(text: u8[:], needle: u8[:]) -> bool {
 
 fn self_check() -> bool {
     let action = "{\"type\":\"order\"}";
-    var long: u8[>..] = [];
-    long.append("0x");
-    for i in 0..130 { long.push('a'); }
-    let body = exchange::body(action, 1700000000000, long, exchange::Text.Absent, exchange::When.Never);
+    var sig: u8[>..] = [];
+    sig.append("{\"r\":\"0x1\",\"s\":\"0x2\",\"v\":27}");
+    let n = sig.len;
+    let body = exchange::body(action, 1700000000000, sig, exchange::Text.Absent, exchange::When.Never);
     if !has(body, "\"action\":") { return false; }
     if !has(body, "\"nonce\":1700000000000") { return false; }
+    if !has(body, "\"signature\":{\"r\":\"0x1\"") { return false; }
+    if has(body, "\"signature\":\"") { return false; }
     if has(body, "vaultAddress") { return false; }
-    if long.len != 132 { return false; }
-    let vaulted = exchange::body(action, 1, long, exchange::Text.Present { text: "0x2222222222222222222222222222222222222222" }, exchange::When.Never);
+    if sig.len != n { return false; }
+    let vaulted = exchange::body(action, 1, sig, exchange::Text.Present { text: "0x2222222222222222222222222222222222222222" }, exchange::When.Never);
     if !has(vaulted, "\"vaultAddress\":\"0x2222222222222222222222222222222222222222\"") { return false; }
 
     var meta: u8[>..] = [];

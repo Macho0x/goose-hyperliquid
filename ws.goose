@@ -1,9 +1,17 @@
-// Subscription texts for the HyperCore websocket.
-// http.wsclient is not on kaitk/goose-http main yet, so this file does not
-// import it and does not open a socket. A dropped connection resends the
-// same texts. The opening does not offer permessage-deflate.
+// Subscription texts for the HyperCore websocket, and a blocking socket
+// on http.wsclient. send writes one text frame. After a drop, connect
+// again and send the same text. The client offers no permessage-deflate.
+// goose-http compresses with goose-compress, and this file imports neither
+// that package nor the deflate package.
+// A program that imports this module declares goose-http, goose-tls, and
+// goose-hash in its root file. Set session.deadline before connect.
+// conn.limit is 64 KiB until the caller raises it.
 
 import json;
+import http from "github.com/kaitk/goose-http@main";
+import tls from "github.com/kaitk/goose-tls@v0.0.6";
+import hash from "github.com/kaitk/goose-hash@v0.0.4";
+import http.wsclient;
 
 namespace ws;
 
@@ -395,9 +403,29 @@ fn post_info(payload: u8[:]) -> u8[>..] {
     return o;
 }
 
-fn opening() -> u8[:] { return "GET /ws HTTP/1.1"; }
+fn connect(session: http::Session&, url: u8[:]) -> http::WsClient, http::Error {
+    return http::ws_client_connect(session, url);
+}
 
-fn connect(url: u8[:]) -> bool {
-    if url.len == 0 { return false; }
-    return false;
+fn send(conn: http::WsClient&, text: u8[:]) -> http::Error {
+    return http::ws_client_text(conn, text);
+}
+
+fn read(conn: http::WsClient&) -> http::WsMessage, http::Error {
+    return http::ws_client_recv(conn);
+}
+
+fn close(conn: http::WsClient&) -> http::Error {
+    return http::ws_client_close(conn);
+}
+
+// Connects to the chain's wss URL, sends text, and returns the next message.
+// The caller closes conn. Set session.deadline before this call.
+fn subscribe(session: http::Session&, chain: hyperliquid::Chain, text: u8[:]) -> http::WsClient, http::WsMessage, http::Error {
+    var conn, err = connect(session, hyperliquid::ws_url(chain));
+    guard err.code == 0 else { return conn, http::WsMessage { .. }, err; }
+    let sent = send(conn, text);
+    guard sent.code == 0 else { return conn, http::WsMessage { .. }, sent; }
+    let msg, rerr = read(conn);
+    return conn, msg, rerr;
 }
