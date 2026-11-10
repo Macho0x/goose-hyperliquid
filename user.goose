@@ -3,11 +3,13 @@
 // A null agent name is the empty string. Multisig inserts two addresses
 // immediately after hyperliquidChain.
 
+import json;
 import crypto from "../crypto";
 import crypto.keccak256;
 import signature from "../signature";
 import signature.eip712;
 import sign;
+import wire;
 
 namespace user;
 
@@ -133,12 +135,14 @@ fn user_dex_abstraction(chain: hyperliquid::Chain, user_addr: u8[20], enabled: b
 }
 
 fn user_set_abstraction(chain: hyperliquid::Chain, user_addr: u8[20], abstraction: u8[:], nonce: u64, chain_id: u64) -> u8[32], bool {
+    let mode, mok = wire::api_mode(abstraction);
+    if !mok { return [0; 32], false; }
     var f: u8[>..] = [];
     push_str(f, hyperliquid::chain_name(chain));
     let u, uok = word_addr(user_addr);
     if !uok { return [0; 32], false; }
     f.append(u);
-    push_str(f, abstraction);
+    push_str(f, mode);
     push_u64(f, nonce);
     return hash_of("HyperliquidTransaction:UserSetAbstraction(string hyperliquidChain,address user,string abstraction,uint64 nonce)", f, chain_id);
 }
@@ -196,6 +200,160 @@ fn send_to_evm(chain: hyperliquid::Chain, token: u8[:], amount: u8[:], source_de
     f.append(keccak256::hash(data));
     push_u64(f, nonce);
     return hash_of("HyperliquidTransaction:SendToEvmWithData(string hyperliquidChain,string token,string amount,string sourceDex,string destinationRecipient,string addressEncoding,uint32 destinationChainId,uint64 gasLimit,bytes data,uint64 nonce)", f, chain_id);
+}
+
+fn open_user(out: u8[>..]&, typ: u8[:], chain: hyperliquid::Chain, chain_id: u64) {
+    out.push('{');
+    json::format_key(out, "type");
+    json::format_string(out, typ);
+    out.push(',');
+    json::format_key(out, "signatureChainId");
+    json::format_string(out, hyperliquid::chain_hex(chain_id));
+    out.push(',');
+    json::format_key(out, "hyperliquidChain");
+    json::format_string(out, hyperliquid::chain_name(chain));
+}
+
+fn str_field(out: u8[>..]&, key: u8[:], value: u8[:]) {
+    out.push(',');
+    json::format_key(out, key);
+    json::format_string(out, value);
+}
+
+fn num_field(out: u8[>..]&, key: u8[:], value: u64) {
+    out.push(',');
+    json::format_key(out, key);
+    json::format_int(out, value as! i64);
+}
+
+fn bool_field(out: u8[>..]&, key: u8[:], value: bool) {
+    out.push(',');
+    json::format_key(out, key);
+    json::format_bool(out, value);
+}
+
+fn addr_field(out: u8[>..]&, key: u8[:], a: u8[20]) -> bool {
+    let text, ok = wire::address_hex(a);
+    if !ok { return false; }
+    str_field(out, key, text);
+    return true;
+}
+
+fn usd_body(chain: hyperliquid::Chain, destination: u8[:], amount: u8[:], time: u64, chain_id: u64) -> u8[>..] {
+    var o: u8[>..] = [];
+    open_user(o, "usdSend", chain, chain_id);
+    str_field(o, "destination", destination);
+    str_field(o, "amount", amount);
+    num_field(o, "time", time);
+    o.push('}');
+    return o;
+}
+
+fn withdraw_body(chain: hyperliquid::Chain, destination: u8[:], amount: u8[:], time: u64, chain_id: u64) -> u8[>..] {
+    var o: u8[>..] = [];
+    open_user(o, "withdraw3", chain, chain_id);
+    str_field(o, "destination", destination);
+    str_field(o, "amount", amount);
+    num_field(o, "time", time);
+    o.push('}');
+    return o;
+}
+
+fn spot_body(chain: hyperliquid::Chain, destination: u8[:], token: u8[:], amount: u8[:], time: u64, chain_id: u64) -> u8[>..] {
+    var o: u8[>..] = [];
+    open_user(o, "spotSend", chain, chain_id);
+    str_field(o, "destination", destination);
+    str_field(o, "token", token);
+    str_field(o, "amount", amount);
+    num_field(o, "time", time);
+    o.push('}');
+    return o;
+}
+
+fn send_asset_body(chain: hyperliquid::Chain, destination: u8[:], source_dex: u8[:], dest_dex: u8[:], token: u8[:], amount: u8[:], from_sub: u8[:], nonce: u64, chain_id: u64) -> u8[>..] {
+    var o: u8[>..] = [];
+    open_user(o, "sendAsset", chain, chain_id);
+    str_field(o, "destination", destination);
+    str_field(o, "sourceDex", source_dex);
+    str_field(o, "destinationDex", dest_dex);
+    str_field(o, "token", token);
+    str_field(o, "amount", amount);
+    str_field(o, "fromSubAccount", from_sub);
+    num_field(o, "nonce", nonce);
+    o.push('}');
+    return o;
+}
+
+fn approve_agent_body(chain: hyperliquid::Chain, agent: u8[20], name: u8[:], nonce: u64, chain_id: u64) -> u8[>..], bool {
+    var o: u8[>..] = [];
+    open_user(o, "approveAgent", chain, chain_id);
+    if !addr_field(o, "agentAddress", agent) { return [], false; }
+    str_field(o, "agentName", name);
+    num_field(o, "nonce", nonce);
+    o.push('}');
+    return o, true;
+}
+
+fn approve_builder_body(chain: hyperliquid::Chain, max_fee: u8[:], builder: u8[20], nonce: u64, chain_id: u64) -> u8[>..], bool {
+    var o: u8[>..] = [];
+    open_user(o, "approveBuilderFee", chain, chain_id);
+    str_field(o, "maxFeeRate", max_fee);
+    if !addr_field(o, "builder", builder) { return [], false; }
+    num_field(o, "nonce", nonce);
+    o.push('}');
+    return o, true;
+}
+
+fn class_body(chain: hyperliquid::Chain, amount: u8[:], to_perp: bool, nonce: u64, chain_id: u64) -> u8[>..] {
+    var o: u8[>..] = [];
+    open_user(o, "usdClassTransfer", chain, chain_id);
+    str_field(o, "amount", amount);
+    bool_field(o, "toPerp", to_perp);
+    num_field(o, "nonce", nonce);
+    o.push('}');
+    return o;
+}
+
+fn set_abstraction_body(chain: hyperliquid::Chain, user_addr: u8[20], abstraction: u8[:], nonce: u64, chain_id: u64) -> u8[>..], bool {
+    let mode, mok = wire::api_mode(abstraction);
+    if !mok { return [], false; }
+    var o: u8[>..] = [];
+    open_user(o, "userSetAbstraction", chain, chain_id);
+    if !addr_field(o, "user", user_addr) { return [], false; }
+    str_field(o, "abstraction", mode);
+    num_field(o, "nonce", nonce);
+    o.push('}');
+    return o, true;
+}
+
+fn hex_data(data: u8[:]) -> u8[>..] {
+    var o: u8[>..] = [];
+    o.push('0');
+    o.push('x');
+    for i in 0..data.len {
+        let v = data[i];
+        let hi = v >> 4;
+        let lo = v & 0x0f;
+        if hi < 10 { o.push('0' + hi); } else { o.push('a' + (hi - 10)); }
+        if lo < 10 { o.push('0' + lo); } else { o.push('a' + (lo - 10)); }
+    }
+    return o;
+}
+
+fn send_evm_body(chain: hyperliquid::Chain, token: u8[:], amount: u8[:], source_dex: u8[:], recipient: u8[:], encoding: u8[:], dest_chain: u64, gas_limit: u64, data: u8[:], nonce: u64, chain_id: u64) -> u8[>..] {
+    var o: u8[>..] = [];
+    open_user(o, "sendToEvmWithData", chain, chain_id);
+    str_field(o, "token", token);
+    str_field(o, "amount", amount);
+    str_field(o, "sourceDex", source_dex);
+    str_field(o, "destinationRecipient", recipient);
+    str_field(o, "addressEncoding", encoding);
+    num_field(o, "destinationChainId", dest_chain);
+    num_field(o, "gasLimit", gas_limit);
+    str_field(o, "data", hex_data(data));
+    num_field(o, "nonce", nonce);
+    o.push('}');
+    return o;
 }
 
 fn has_schema(kind: u8[:]) -> bool {

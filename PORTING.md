@@ -30,7 +30,9 @@ Calls are blocking. The nonce is an argument. There is no tokio, reqwest, yawc, 
 
 A closed set is an enum. A missing field is one absent-or-present value, and a wire bool such as buy, reduce-only, cross, or deposit is a two-variant enum. `user` takes `Chain` and hashes it as the text `Mainnet` or `Testnet`. The MessagePack and JSON bytes are unchanged.
 
-`ws::connect` calls `http.wsclient`. `l2_book_opts` can set `fast`, which asks the exchange for five levels on the short timer. The opening offers no permessage-deflate. goose-http's compressor is goose-compress, not the deflate package beside this one, and this socket imports neither. Reconnect is resending the subscription texts. `WsClient.limit` stays 64 KiB until the caller raises it.
+`ws::connect` calls `http.wsclient`. `l2_book_opts` can set `fast`, which asks the exchange for five levels on the short timer. The opening offers no permessage-deflate. goose-http's compressor is goose-compress, not the deflate package beside this one, and this socket imports neither. Reconnect is the caller opening again and sending the same texts. `unsubscribe` rewrites a subscribe text. `ping` and `pong` are the application frames, and `needs_pong` matches a server ping. `post` wraps an info body or an exchange body as `{"type","payload"}` with the caller's id. `WsClient.limit` stays 64 KiB until the caller raises it. There is no reconnect task and no timer.
+
+`jsonact::of` writes the JSON object for an L1 MessagePack map. `user` body functions write the JSON for a user-signed action, including `signatureChainId`. `wire::api_mode` reads `"default"` as unified account. `wire::tick` and `wire::round_price` use the five-significant-figure rule. `order::market` is a FrontendMarket order. `nonce` is `time_ns` in milliseconds.
 
 A scale above 28 returns false. goose-decimal cannot hold a larger coefficient.
 

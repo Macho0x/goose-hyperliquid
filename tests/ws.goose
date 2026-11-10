@@ -37,8 +37,14 @@ fn self_check() -> bool {
     if !has(events, "\"user\":\"0x2222222222222222222222222222222222222222\"") { return false; }
     let asset = ws::active_asset(user, "BTC");
     if !has(asset, "\"type\":\"activeAssetData\"") || !has(asset, "\"coin\":\"BTC\"") { return false; }
-    let post = ws::post_info("{\"type\":\"meta\"}");
-    if !has(post, "\"method\":\"post\"") { return false; }
+    let post = ws::post_info(7, "{\"type\":\"meta\"}");
+    if post != "{\"method\":\"post\",\"id\":7,\"request\":{\"type\":\"info\",\"payload\":{\"type\":\"meta\"}}}" { return false; }
+    let act = ws::post_action(8, "{\"type\":\"noop\"}");
+    if !has(act, "\"type\":\"action\"") || !has(act, "\"id\":8") { return false; }
+    let off, ook = ws::unsubscribe(trades);
+    if !ook || !has(off, "\"method\":\"unsubscribe\"") || !has(off, "\"coin\":\"BTC\"") { return false; }
+    if ws::ping() != "{\"method\":\"ping\"}" || ws::pong() != "{\"method\":\"pong\"}" { return false; }
+    if !ws::needs_pong("{\"channel\":\"ping\"}") { return false; }
     let again = ws::trades("BTC");
     if again != trades { return false; }
     var session = http::session();

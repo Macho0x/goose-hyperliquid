@@ -388,19 +388,66 @@ fn l2_book_opts(coin: u8[:], figs: Stamp, mantissa: Stamp, fast: bool) -> u8[>..
     return o;
 }
 
-fn post_info(payload: u8[:]) -> u8[>..] {
+fn post(id: i64, kind: u8[:], payload: u8[:]) -> u8[>..] {
     var o: u8[>..] = [];
     o.push('{');
     json::format_key(o, "method");
     json::format_string(o, "post");
     o.push(',');
     json::format_key(o, "id");
-    json::format_int(o, 1);
+    json::format_int(o, id);
     o.push(',');
     json::format_key(o, "request");
+    o.push('{');
+    json::format_key(o, "type");
+    json::format_string(o, kind);
+    o.push(',');
+    json::format_key(o, "payload");
     o.append(payload);
     o.push('}');
+    o.push('}');
     return o;
+}
+
+fn post_info(id: i64, payload: u8[:]) -> u8[>..] { return post(id, "info", payload); }
+
+fn post_action(id: i64, payload: u8[:]) -> u8[>..] { return post(id, "action", payload); }
+
+fn ping() -> u8[>..] {
+    var o: u8[>..] = [];
+    o.append("{\"method\":\"ping\"}");
+    return o;
+}
+
+fn pong() -> u8[>..] {
+    var o: u8[>..] = [];
+    o.append("{\"method\":\"pong\"}");
+    return o;
+}
+
+fn unsubscribe(sub: u8[:]) -> u8[>..], bool {
+    let head = "{\"method\":\"subscribe\"";
+    if sub.len < head.len { return [], false; }
+    for i in 0..head.len {
+        if sub[i] != head[i] { return [], false; }
+    }
+    var o: u8[>..] = [];
+    o.append("{\"method\":\"unsubscribe\"");
+    for i in head.len..sub.len { o.push(sub[i]); }
+    return o, true;
+}
+
+fn needs_pong(text: u8[:]) -> bool {
+    let needle = "\"channel\":\"ping\"";
+    if needle.len > text.len { return false; }
+    for i in 0..(text.len - needle.len + 1) {
+        var same = true;
+        for j in 0..needle.len {
+            if text[i + j] != needle[j] { same = false; }
+        }
+        if same { return true; }
+    }
+    return false;
 }
 
 fn connect(session: http::Session&, url: u8[:]) -> http::WsClient, http::Error {

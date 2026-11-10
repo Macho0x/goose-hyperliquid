@@ -601,6 +601,17 @@ fn asset_ctx(encoded: u8[:]) -> u8[>..], bool {
     return inflate::decode(raw);
 }
 
+fn fast_message(text: u8[:]) -> u8[>..], bool {
+    var doc: json::Node[>..] = [];
+    var decoded: u8[>..] = [];
+    let root, err = json::parse(text, doc, decoded);
+    if root == null { return [], false; }
+    let node = json::member(root, "data");
+    let s, ok = json::as_string(node);
+    if !ok { return [], false; }
+    return asset_ctx(s);
+}
+
 // Posts payload, the JSON from request and the other builders.
 // A program that calls post declares goose-http and goose-tls in its root file.
 fn post(session: http::Session&, chain: hyperliquid::Chain, payload: u8[:]) -> http::ClientResponse, http::Error {

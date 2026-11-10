@@ -241,6 +241,26 @@ fn with_cloid(price: u8[:], size: u8[:], cloid: u8[:]) -> u8[>..], bool {
     return out, true;
 }
 
+fn place(asset: u64, side: Side, price: u8[:], size: u8[:], reduce: Reduce, tif: u8[:], priority: Priority) -> u8[>..], bool {
+    let px, pok = wire::normalize(price);
+    let sz, sok = wire::normalize(size);
+    if !pok || !sok { return [], false; }
+    var out: u8[>..] = [];
+    encode::map(out, 3);
+    encode::str(out, "type");
+    encode::str(out, action_text(Action.Order));
+    encode::str(out, "orders");
+    encode::array(out, 1);
+    order_wire(out, asset, side, px, sz, reduce, tif);
+    encode::str(out, "grouping");
+    put_priority(out, priority);
+    return out, true;
+}
+
+fn market(asset: u64, side: Side, price: u8[:], size: u8[:]) -> u8[>..], bool {
+    return place(asset, side, price, size, Reduce.Open, "FrontendMarket", Priority.Absent);
+}
+
 fn prehash(body: u8[:], nonce: u64) -> u8[32], bool {
     return sign::l1_prehash(body, nonce, sign::Vault.Absent, sign::Expiry.Absent, hyperliquid::Chain.Mainnet);
 }

@@ -6,7 +6,7 @@
 
 <p align="center">
   HyperCore signing, info, and HyperEVM reads for <a href="https://github.com/aardappel/goose">Goose</a><br>
-  <strong>0.2.0</strong> · <a href="LICENSE">Apache-2.0</a>
+  <strong>0.3.0</strong> · <a href="LICENSE">Apache-2.0</a>
 </p>
 
 Signs the same HyperCore hashes as [hypersdk](https://github.com/infinitefield/hypersdk) 0.3.0 and the Hyperliquid Python SDK. An L1 order is a named MessagePack map, a nonce, and an Agent signature. A transfer is EIP-712 under `HyperliquidSignTransaction`. Prices go through goose-decimal, so `10.0` is hashed as `10`.
@@ -80,15 +80,16 @@ goose build -o /tmp/stack-live tests/stack_live.goose --cc clang && /tmp/stack-l
 
 | Module | What it does |
 | --- | --- |
-| `wire` | Normalized decimals and `0x` addresses |
+| `wire` | Normalized decimals, `0x` addresses, abstraction names, and price ticks |
 | `sign` | L1 connection id and user-signed EIP-712 digest |
+| `jsonact` | JSON for an L1 MessagePack action |
 | `user` | Transfers, agent approval, delegation, and the other user-signed actions |
 | `l1` | Leverage, margin, vault, borrow, dust, and sub-account MessagePack |
-| `order` | Order, cancel, modify, trigger, and client-order-id MessagePack |
+| `order` | Order, cancel, modify, trigger, client-order-id, and FrontendMarket MessagePack |
 | `deploy` | HIP-1, HIP-3, and HIP-4 deploy MessagePack |
 | `exchange` | The JSON body for `/exchange`, and `post` |
 | `info` | Info requests, `post`, a market name, and raw-deflate asset contexts |
-| `ws` | Subscription texts, connect, send, read, close, and `subscribe`. No permessage-deflate |
+| `ws` | Subscription texts, post, unsubscribe, ping, pong, connect, send, read, close. No permessage-deflate |
 | `evm` | `to_wei` and `from_wei` up to 28 decimal places |
 | `morpho` | `market(bytes32)` and `idToMarketParams(bytes32)` |
 | `uniswap` | `slot0`, `token0`, and a pool address from a saved log |

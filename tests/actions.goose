@@ -199,8 +199,8 @@ fn dump() -> u8[>..] {
     line(out, "agent_abs", l1::agent_set_abstraction("u"));
     line(out, "twap", l1::twap_order(3, l1::Side.Buy, "1.5", l1::Reduce.Open, 30, true));
     line(out, "twap_cancel", l1::twap_cancel(3, 9));
-    line(out, "trail_pct", l1::trailing_pct(1, l1::Side.Buy, "2", l1::Reduce.Open, "1.5%"));
-    line(out, "trail_px", l1::trailing_px(1, l1::Side.Sell, "2", l1::Reduce.ReduceOnly, "10", "100"));
+    line(out, "trail_pct", l1::trailing_pct(1, l1::Side.Buy, "2", l1::Reduce.Open, "1.5%", l1::Text.Absent));
+    line(out, "trail_px", l1::trailing_px(1, l1::Side.Sell, "2", l1::Reduce.ReduceOnly, "10", l1::Text.Present { text: "100" }));
     line(out, "cdep", l1::c_deposit(1000));
     line(out, "cwdr", l1::c_withdraw(1000));
     line(out, "reserve0", l1::reserve_weight(4, l1::Text.Absent));

@@ -4,6 +4,7 @@
 import msgpack from "../msgpack";
 import msgpack.encode;
 import sign;
+import wire;
 
 namespace l1;
 
@@ -304,10 +305,13 @@ fn agent_enable_dex_abstraction() -> u8[>..] {
 }
 
 fn agent_set_abstraction(code: u8[:]) -> u8[>..] {
+    var canon: u8[>..] = [];
+    let mapped, ok = wire::agent_code(code);
+    if ok { canon.append(mapped); } else { canon.append(code); }
     var out: u8[>..] = [];
     begin(out, 2, Kind.AgentSetAbstraction);
     encode::str(out, "abstraction");
-    encode::str(out, code);
+    encode::str(out, canon);
     return out;
 }
 
@@ -354,25 +358,28 @@ fn trail_head(out: u8[>..]&, asset: u64, side: Side, size: u8[:], reduce: Reduce
     encode::str(out, "retracement");
 }
 
-fn trailing_pct(asset: u64, side: Side, size: u8[:], reduce: Reduce, pct: u8[:]) -> u8[>..] {
+fn put_activation(out: u8[>..]&, activation: Text) {
+    encode::str(out, "activationPx");
+    put_text(out, activation);
+}
+
+fn trailing_pct(asset: u64, side: Side, size: u8[:], reduce: Reduce, pct: u8[:], activation: Text) -> u8[>..] {
     var out: u8[>..] = [];
     trail_head(out, asset, side, size, reduce);
     encode::map(out, 1);
     encode::str(out, "pct");
     encode::str(out, pct);
-    encode::str(out, "activationPx");
-    encode::nil(out);
+    put_activation(out, activation);
     return out;
 }
 
-fn trailing_px(asset: u64, side: Side, size: u8[:], reduce: Reduce, px: u8[:], activation: u8[:]) -> u8[>..] {
+fn trailing_px(asset: u64, side: Side, size: u8[:], reduce: Reduce, px: u8[:], activation: Text) -> u8[>..] {
     var out: u8[>..] = [];
     trail_head(out, asset, side, size, reduce);
     encode::map(out, 1);
     encode::str(out, "px");
     encode::str(out, px);
-    encode::str(out, "activationPx");
-    encode::str(out, activation);
+    put_activation(out, activation);
     return out;
 }
 
